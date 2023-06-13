@@ -53,6 +53,7 @@ object App {
       }
     })
 
+
     val datetime: Long = if (param(2) != "") {
       try {
         val date = new java.text.SimpleDateFormat("dd.MM.yyyy_H:m:s").parse(param(2))
