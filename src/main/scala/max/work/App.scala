@@ -6,6 +6,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import java.io.PrintWriter
 import java.util.Calendar
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 case class DocOpen (
                          key: Long,
@@ -38,40 +39,58 @@ case class StatisticsMapKey(docHash: Long, key: Long, date: Long)
 object App {
 
   private def lineToDocOpen (fileName: String, str: String): DocOpen = {
-    val words = str.split(" ")
+    var param: ArrayBuffer[String] = ArrayBuffer[String]("","","")
+    val keyPattern = "^\\d+$".r
+    val keyPatternMinus = "^-\\d+$".r
+    val docPattern = "^\\w+_\\d+$".r
+    str.split(" ").tail.foreach(word => {
+      if (keyPattern.findFirstIn(word).isDefined || keyPatternMinus.findFirstIn(word).isDefined ){
+        param(0) = word
+      } else if (docPattern.findFirstIn(word).isDefined) {
+        param(1) = word
+      } else {
+        param(2) = word
+      }
+    })
 
-    val datetime: Long = try {
-      val date = new java.text.SimpleDateFormat("dd.MM.yyyy_H:m:s").parse(words(1))
-      val calendar = Calendar.getInstance
-      calendar.setTime(date)
-      calendar.set(Calendar.MILLISECOND, 0)
-      calendar.set(Calendar.SECOND, 0)
-      calendar.set(Calendar.MINUTE, 0)
-      calendar.set(Calendar.HOUR, 0)
-      calendar.getTimeInMillis
-    } catch {
-      case _: Throwable =>
-        println(s"ERROR => file: $fileName; can't parse date;")
-        -1
-    }
+    val datetime: Long = if (param(2) != "") {
+      try {
+        val date = new java.text.SimpleDateFormat("dd.MM.yyyy_H:m:s").parse(param(2))
+        val calendar = Calendar.getInstance
+        calendar.setTime(date)
+        calendar.set(Calendar.MILLISECOND, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.HOUR, 0)
+        calendar.getTimeInMillis
+      } catch {
+        case _: Throwable =>
+          println(s"ERROR => file: $fileName; can't parse date;")
+          -1
+      }
+    } else 0
 
-    val key: Long = try {
-      words(2).toLong
-    } catch {
-      case _: Throwable =>
-        println(s"ERROR => file: $fileName; can't parse key;")
-        -1
-    }
+    val key: Long = if (param(0) != "")  {
+      try {
+        param(0).toLong
+      } catch {
+        case _: Throwable =>
+          println(s"ERROR => file: $fileName; can't parse key;")
+          -1
+      }
+    } else 0
 
-    val docName: String = words(3)
-    val docHash: Int = words(3).hashCode()
+    val docHash: Int = if (param(1) != "") {
+      param(1).hashCode()
+    } else 0
 
     DocOpen(
       key = key,
       time = datetime,
-      docName = docName,
+      docName = param(1),
       doc = docHash
     )
+
   }
 
   private def lineHead(line: String): String = {
@@ -211,7 +230,7 @@ object App {
     val sc = new SparkContext(conf)
     val sessions =
       sc
-        .wholeTextFiles("./small-data-set")
+        .wholeTextFiles("./data")
         .map(file => parseText(file._1, file._2))
     val docHash = "ACC_45616".hashCode()
     val docCount = sc.longAccumulator("ACC_45616 count")
