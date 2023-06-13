@@ -38,6 +38,7 @@ case class StatisticsMapKey(docHash: Long, date: Long)
 
 object App {
 
+
   private def lineToDocOpen (fileName: String, str: String): DocOpen = {
     val param: ArrayBuffer[String] = ArrayBuffer[String]("","","")
     val keyPattern = "^\\d+$".r
