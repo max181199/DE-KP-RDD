@@ -34,12 +34,12 @@ sealed trait ParseStates
   case object DOC_OPEN extends ParseStates
   case object ERROR extends ParseStates
 
-case class StatisticsMapKey(docHash: Long, key: Long, date: Long)
+case class StatisticsMapKey(docHash: Long, date: Long)
 
 object App {
 
   private def lineToDocOpen (fileName: String, str: String): DocOpen = {
-    var param: ArrayBuffer[String] = ArrayBuffer[String]("","","")
+    val param: ArrayBuffer[String] = ArrayBuffer[String]("","","")
     val keyPattern = "^\\d+$".r
     val keyPatternMinus = "^-\\d+$".r
     val docPattern = "^\\w+_\\d+$".r
@@ -241,10 +241,10 @@ object App {
         val map = mutable.Map[StatisticsMapKey, Long]()
           session.docOpen.foreach(doc => {
             if (session.quickSearch.contains(doc.key) && session.quickSearch(doc.key).contains(doc.doc)){
-              if (map.contains(StatisticsMapKey(doc.doc, doc.key, doc.time))) {
-                map(StatisticsMapKey(doc.doc, doc.key, doc.time)) += 1
+              if (map.contains(StatisticsMapKey(doc.doc, doc.time))) {
+                map(StatisticsMapKey(doc.doc,  doc.time)) += 1
               } else {
-                map += StatisticsMapKey(doc.doc, doc.key, doc.time) -> 1
+                map += StatisticsMapKey(doc.doc, doc.time) -> 1
               }
             }
           })
@@ -257,7 +257,7 @@ object App {
 
     new PrintWriter("result") {
       write(s"Count: ${docCount.value};\n")
-      statistics.foreach(m => write(s"${m._1.key}\t${m._1.docHash}\t${m._1.date}\t${m._2}\n"))
+      statistics.foreach(m => write(s"${m._1.docHash}\t${m._1.date}\t${m._2}\n"))
       close()
     }
 
